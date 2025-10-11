@@ -12,14 +12,6 @@ import MoviePage from "./Components/MoviePage";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Login />,
-  },
-  {
-    path: "/signup",
-    element: <Signup />,
-  },
-  {
-    path: "/home",
     element: <Home />
   },
   {
