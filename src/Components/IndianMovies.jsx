@@ -1,6 +1,9 @@
 import React from 'react'
 import { useState, useEffect } from 'react'
 import Section from './Section';
+import rrr from '../assets/RRR.jpg';
+
+
 const IndianMovies = () => {
     const [indianMovies, setIndianMovies] = useState([
   {
@@ -140,3 +143,4 @@ const IndianMovies = () => {
 
 
 export default IndianMovies
+
