@@ -3,7 +3,17 @@ import { Navigate, useNavigate } from "react-router-dom";
 
 const Section = ({ title, data }) => {
 
-    if (!data || data.length === 0) return null; 
+      if (!data || data.length === 0) return (
+        <div className="flex flex-col items-center justify-center m-4 p-4 min-h-[200px]">
+
+            <div className="w-12 h-12 border-4 border-blue-500 border-dashed rounded-full animate-spin mb-4"></div>
+
+            <p className="text-center lg:text-2xl md:text-xl text-lg font-medium text-gray-700 animate-pulse">
+                Loading {title}...
+            </p>
+
+        </div>
+    );
 
     return (
         <section className="px-8 py-6">
@@ -58,5 +68,6 @@ const MovieCard = ({ title, image, rating , imdbId, media_type}) => {
         </div>
     );
 };
+
 
 export default Section
