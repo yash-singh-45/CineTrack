@@ -34,10 +34,11 @@ const Navbar = () => {
           />
           {/* <span className="absolute top-1 right-1 md:right-4 md:top-2.5 text-gray-400">🔍</span> */}
         </form>
-        <Link to={"/profile"} className="text-white bg-white rounded-2xl text-1xl md:text-3xl">👤</Link>
+        {/* <Link to={"/profile"} className="text-white bg-white rounded-2xl text-1xl md:text-3xl">👤</Link> */}
       </nav>
     </div>
   )
 }
+
 
 export default Navbar
