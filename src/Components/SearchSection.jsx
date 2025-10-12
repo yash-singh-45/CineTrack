@@ -33,7 +33,7 @@ const SearchSection = () => {
 
         const formatData = (data, type) => {
           if (!data || data.Response === "False") return [];
-          return data.Search.map(item => ({
+          return data.Search.filter(item => item.Poster && item.Poster!="N/A").map(item => ({
             title: item.Title,
             image: item.Poster !== "N/A" ? item.Poster : "/fallback-image.jpg",
             rating: "N/A", // Optional: fetch details if you want IMDb rating
@@ -102,5 +102,6 @@ function MovieCard({ movie, navigate }) {
     </div>
   );
 }
+
 
 
