@@ -16,7 +16,7 @@ const Section = ({ title, data }) => {
     );
 
     return (
-        <section className="px-8 py-6">
+        <section className="md:px-8 md:py-6 px-2 py-4">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="md:text-2xl text-1xl font-bold">{title}</h2>
                 {/* <button className="text-cyan-400">See All</button> */}
@@ -71,3 +71,4 @@ const MovieCard = ({ title, image, rating , imdbId, media_type}) => {
 
 
 export default Section
+
