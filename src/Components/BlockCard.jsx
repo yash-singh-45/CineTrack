@@ -29,7 +29,7 @@ const BlockCard = ({ heroMovies }) => {
     }
 
     return (
-        <section className="relative px-8 py-8 " >
+        <section className="relative md:px-8 md:py-8 px-2 py-2" >
             <div 
               className="rounded-lg overflow-hidden relative cursor-pointer"
               onClick={handleViewDetails}>
@@ -52,3 +52,4 @@ const BlockCard = ({ heroMovies }) => {
 }
 
 export default BlockCard
+
