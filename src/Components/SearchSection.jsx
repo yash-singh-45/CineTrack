@@ -2,14 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
 
-const filters = [
-  'Popularity (desc)',
-  'Type: Movies',
-  'Genre: Animation',
-  'Rating 7+',
-];
-
-const apikey = import.meta.env.VITE_TMDB_API_KEY;
+const apikey = import.meta.env.VITE_OMDB_API_KEY;
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 const BASE_URL = "https://api.themoviedb.org/3";
 
@@ -22,73 +15,37 @@ const SearchSection = () => {
 
   const query = new URLSearchParams(location.search).get("query");
   useEffect(() => {
-    setMovieResults([])
+    setMovieResults([]);
+
+    if (!query)
+      return;
+
+
     async function fetchMovies() {
       try {
-        const movieRes = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${apikey}&query=${query}`);
+        const movieRes = await fetch(`https://www.omdbapi.com/?s=${encodeURIComponent(query)}&type=movie&apikey=${apikey}`);
         const movieData = await movieRes.json();
+        // console.log(movieData);
 
-        const tvRes = await fetch(`${BASE_URL}/search/tv?api_key=${apikey}&query=${query}`);
+        const tvRes = await fetch(`https://www.omdbapi.com/?s=${encodeURIComponent(query)}&type=series&apikey=${apikey}`);
         const tvData = await tvRes.json();
+        // console.log(tvData);
 
-        // console.log(data);
-        const moviesWithImdb = await Promise.all(
-          movieData.results.filter(movie => movie.backdrop_path && movie.vote_average != 0).map(async (movie) => {
-            try {
-              const detailRes = await fetch(`${BASE_URL}/movie/${movie.id}?api_key=${apikey}`);
-              const detailsData = await detailRes.json();
-
-              return {
-                title: movie.title || movie.name,
-                image: movie.backdrop_path
-                  ? `${IMAGE_BASE_URL}${movie.backdrop_path}`
-                  : "/fallback-image.jpg",
-                rating: movie.vote_average.toFixed(1),
-                imdbId: detailsData.imdb_id || null,
-                media_type: "movie",
-              };
-            } catch (err) {
-              console.error("Failed to fetch movie details for:", movie.title, err);
-              return {
-                title: movie.title || movie.name,
-                image: movie.backdrop_path
-                  ? `${IMAGE_BASE_URL}${movie.backdrop_path}`
-                  : "/fallback-image.jpg",
-                rating: movie.vote_average.toFixed(1),
-                imdbId: null,
-              };
-            }
+        const formatData = (data, type) => {
+          if (!data || data.Response === "False") return [];
+          return data.Search.map(item => ({
+            title: item.Title,
+            image: item.Poster !== "N/A" ? item.Poster : "/fallback-image.jpg",
+            rating: "N/A", // Optional: fetch details if you want IMDb rating
+            imdbId: item.imdbID,
+            media_type: type,
           }));
+        };
 
-          const tvsWithImdb = await Promise.all(
-          tvData.results.filter(movie => movie.backdrop_path && movie.vote_average != 0).map(async (movie) => {
-            try {
-              const detailRes = await fetch(`${BASE_URL}/tv/${movie.id}/external_ids?api_key=${apikey}`);
-              const detailsData = await detailRes.json();
-
-              return {
-                title: movie.title || movie.name,
-                image: movie.backdrop_path
-                  ? `${IMAGE_BASE_URL}${movie.backdrop_path}`
-                  : "/fallback-image.jpg",
-                rating: movie.vote_average.toFixed(1),
-                imdbId: detailsData.imdb_id || null,
-                media_type: "tv",
-              };
-            } catch (err) {
-              console.error("Failed to fetch movie details for:", movie.title, err);
-              return {
-                title: movie.title || movie.name,
-                image: movie.backdrop_path
-                  ? `${IMAGE_BASE_URL}${movie.backdrop_path}`
-                  : "/fallback-image.jpg",
-                rating: movie.vote_average.toFixed(1),
-                imdbId: null,
-              };
-            }
-          }));
-
-        setMovieResults([...moviesWithImdb, ...tvsWithImdb]);
+        setMovieResults([
+          ...formatData(movieData, "movie"),
+          ...formatData(tvData, "tv")
+        ]);
       }
       catch (e) {
         console.log(e);
@@ -96,6 +53,8 @@ const SearchSection = () => {
     }
     fetchMovies();
   }, [query])
+
+
   return (
     <div className="bg-[#0F1117] min-h-screen px-4 sm:px-10 py-8 text-white">
 
@@ -136,9 +95,6 @@ function MovieCard({ movie, navigate }) {
           alt={movie.title}
           className="w-full aspect-square   object-cover"
         />
-        <div className="absolute top-2 right-2 bg-black bg-opacity-70 px-1 py-1 md:px-2 md:py-1 rounded-md text-xs text-yellow-400 font-semibold">
-          ⭐ {movie.rating}
-        </div>
       </div>
       <div className="md:p-3 p-1">
         <p className="md:text-sm text-xs font-semibold mb-1 truncate ">{movie.title}</p>
