@@ -47,48 +47,9 @@ export default function MoviePage() {
   if (!movie) return <p className="text-white">Loading...</p>;
   if (movie.Response === "False") return <p className="text-red-500">Movie not found</p>;
 
-  const handleWatchTrailer = async () => {
-    try {
-
-      const searchRes = await fetch(
-        `https://api.themoviedb.org/3/find/${imdbId}?api_key=${import.meta.env.VITE_TMDB_API_KEY}&external_source=imdb_id`
-      );
-      const searchData = await searchRes.json();
-      
-      let movieId;
-      let mediaType;
-
-      if (searchData.movie_results && searchData.movie_results.length > 0) {
-        movieId = searchData.movie_results[0].id;
-        mediaType = "movie";
-      } else if (searchData.tv_results && searchData.tv_results.length > 0) {
-        movieId = searchData.tv_results[0].id;
-        mediaType = "tv";
-      } else {
-        toast.error("Trailer not found!");
-        return;
-      }
-
-
-      // Get videos for that movie
-      const videosRes = await fetch(
-        `https://api.themoviedb.org/3/${mediaType}/${movieId}/videos?api_key=${import.meta.env.VITE_TMDB_API_KEY}&language=en-US`
-      );
-      const videosData = await videosRes.json();
-
-      const trailer = videosData.results.find(
-        (vid) => vid.type === "Trailer" && vid.site === "YouTube"
-      ) || videosData.results.find(
-        (vid) => vid.site === "YouTube");
-
-      if (trailer) setTrailerKey(trailer.key);
-      else toast.error("Trailer not found!");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to fetch trailer");
-    }
-  };
-
+  const handleWatchTrailer = () => {
+  toast.error("Failed to fetch trailer");
+};
 
   return (
     <div className="min-h-screen bg-[#0B0B0C] text-white p-4 md:p-8 flex justify-center">
@@ -280,3 +241,4 @@ export default function MoviePage() {
     </div>
   );
 }
+
