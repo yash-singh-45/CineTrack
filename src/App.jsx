@@ -8,8 +8,16 @@ import Profile from "./Components/Profile";
 import SearchSection from "./Components/SearchSection";
 import Navbar from "./Components/Navbar";
 import MoviePage from "./Components/MoviePage";
-
+import WatchList from "./Components/WatchList";
 const router = createBrowserRouter([
+  // {
+  //   path: "/",
+  //   element: <Login />,
+  // },
+  // {
+  //   path: "/signup",
+  //   element: <Signup />,
+  // },
   {
     path: "/",
     element: <Home />
@@ -29,6 +37,10 @@ const router = createBrowserRouter([
   {
     path: "page/:type/:imdbId",
     element: <MoviePage />
+  },
+  {
+    path: "/watchlist",
+    element: <WatchList />
   }
 ]);
 
