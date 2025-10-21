@@ -4,10 +4,12 @@ import toast from "react-hot-toast";
 export default function MoviePage() {
   const [userRating, setUserRating] = useState(0);
   const { media, imdbId } = useParams(); // get movie name from URL
+  console.log(`media is ${media}`);
 
   const [movie, setMovie] = useState(null);
   const apikey = import.meta.env.VITE_OMDB_API_KEY;
   const [trailerKey, setTrailerKey] = useState(""); // YouTube video key
+  const [inWatchlist, setInWatchlist] = useState(false);
 
 
   useEffect(() => {
@@ -34,7 +36,10 @@ export default function MoviePage() {
             director: data.Director,
             writers: data.Writer,
             budget: "N/A", // OMDb does not provide
+            
           },
+          imdbId:imdbId,
+          media_type: media,
         };
         setMovie(mappedMovie);
       } else {
@@ -42,14 +47,54 @@ export default function MoviePage() {
       }
     }
     fetchMovie();
+
+
+    const watchlist = JSON.parse(localStorage.getItem("watchlist")) || [] ;
+    
+    const exists  = watchlist.find((m) => m.imdbId === imdbId);
+
+    if(exists){
+      setInWatchlist(true);
+    }
+
   }, [imdbId]);
 
   if (!movie) return <p className="text-white">Loading...</p>;
   if (movie.Response === "False") return <p className="text-red-500">Movie not found</p>;
 
   const handleWatchTrailer = () => {
-  toast.error("Failed to fetch trailer");
-};
+    toast.error("Failed to fetch trailer");
+  };
+
+  function handleAddToWatchlist(){
+    const watchlist = JSON.parse(localStorage.getItem("watchlist")) || [];
+
+    const exists = watchlist.find((m) => m.imdbId === movie.imdbId);
+    if (exists) {
+      toast.error("Movie already in Watchlist");
+      return;
+    }
+
+    localStorage.setItem("watchlist", JSON.stringify([...watchlist, movie]));
+
+    setInWatchlist(true);
+    toast.success("Added to Watchlist 🎬");
+  }
+
+  function handleRemoveFromWatchlist(){
+    const watchlist = JSON.parse(localStorage.getItem("watchlist")) || [];
+
+    if(watchlist.length === 0){
+      toast.error("Watchlist is empty");
+      return;
+    }
+
+    const newWatchlist = watchlist.filter((m) => m.imdbId !== movie.imdbId);
+    localStorage.setItem("watchlist", JSON.stringify(newWatchlist));
+
+    setInWatchlist(false);
+    toast.success("Removed from Watchlist");
+  }
 
   return (
     <div className="min-h-screen bg-[#0B0B0C] text-white p-4 md:p-8 flex justify-center">
@@ -93,17 +138,25 @@ export default function MoviePage() {
               </div>
 
               <div className="flex items-center gap-3 mt-4">
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                   <svg className="w-6 h-6 text-yellow-400" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.787 1.4 8.161L12 18.896 4.666 23.158l1.4-8.161L.132 9.21l8.2-1.192z" />
                   </svg>
                   <span className="text-lg font-bold">{movie.rating}</span>
-                </div>
+                </div> */}
 
                 <div className="flex gap-3 ml-10 md:text-sm lg:text-lg md:ml-0">
                   <button onClick={handleWatchTrailer} className="px-4 py-2 bg-teal-500/95 rounded-full font-medium shadow-md hover:scale-[1.01] transition">
                     ▶ Watch Trailer
                   </button>
+
+                  <button
+                    onClick={inWatchlist?handleRemoveFromWatchlist :handleAddToWatchlist}
+                    className="px-4 py-2 bg-transparent border border-teal-400 text-teal-400 rounded-full font-medium shadow-md hover:bg-teal-500/20 transition"
+                  >
+                    { inWatchlist? "❌ Remove from Watchlist" : "➕ Add to Watchlist"}
+                  </button>
+
 
                   {/* <button className="px-3 py-2 bg-transparent border border-gray-700 rounded-full text-gray-300">
                     Remove from Watchlist
@@ -171,9 +224,9 @@ export default function MoviePage() {
               <h3 className="text-lg font-semibold mb-3">User Reviews & Ratings</h3>
               <div className="flex items-center gap-4">
                 <div className="flex flex-row gap-4 items-center ">
-                  <div className="text-4xl font-bold text-yellow-400">4.2</div>
-                  <div className="text-sm -ml-3">⭐</div>
-                  <div className="text-xs md:text-sm lg:text-base text-gray-400">Average Rating</div>
+                  <div className="text-4xl font-bold text-yellow-400">{movie.rating}</div>
+                  <div className="text-sm md:text-xl -ml-3">⭐</div>
+                  <div className="text-xs md:text-sm lg:text-lg text-gray-400">Average Rating</div>
                 </div>
                 {/* <div className="text-sm text-gray-400">
                   <p>Snapshots of user reviews will appear here. Add the review component or list as needed.</p>
@@ -223,7 +276,7 @@ export default function MoviePage() {
             <iframe
               width="100%"
               height="400"
-              src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1`}
+              src={trailerKey}
               title="Movie Trailer"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -241,4 +294,3 @@ export default function MoviePage() {
     </div>
   );
 }
-
