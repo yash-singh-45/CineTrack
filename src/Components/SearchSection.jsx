@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
 
+
+
 const apikey = import.meta.env.VITE_OMDB_API_KEY;
 const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
 const BASE_URL = "https://api.themoviedb.org/3";
@@ -65,7 +67,7 @@ const SearchSection = () => {
         <p className="text-gray-400">Showing {movieResults.length} results</p>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 gap-6">
+      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 md:gap-6">
         {movieResults.filter(movie => movie.rating != 0).map((movie) => (
           <MovieCard key={movie.imdbId} movie={movie} navigate={navigate} />
         ))}
@@ -102,6 +104,5 @@ function MovieCard({ movie, navigate }) {
     </div>
   );
 }
-
 
 
