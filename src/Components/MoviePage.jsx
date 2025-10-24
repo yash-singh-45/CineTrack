@@ -1,23 +1,97 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+
 export default function MoviePage() {
-  const [userRating, setUserRating] = useState(0);
+  const apikey = import.meta.env.VITE_OMDB_API_KEY;
+  const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
   const { media, imdbId } = useParams(); // get movie name from URL
-  console.log(`media is ${media}`);
 
   const [movie, setMovie] = useState(null);
-  const apikey = import.meta.env.VITE_OMDB_API_KEY;
   const [trailerKey, setTrailerKey] = useState(""); // YouTube video key
   const [inWatchlist, setInWatchlist] = useState(false);
+  const [similarMovies, setSimilarMovies] = useState([]);
+
+  async function getSimilarMoviesGemini(movieTitle, media) {
+    const prompt = `Suggest 6 ${media === 'movie' ? 'movies' : 'web series'} similar to "${movieTitle}".
+- They should match the genre of "${movieTitle}"
+- Prefer movies from the same country/language (e.g., Indian movies if "${movieTitle}" is Indian)
+Return only in JSON:
+[
+  { "title": "", "imdbId": "" }
+]`;
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }]
+            }
+          ]
+        })
+      }
+    );
+
+    const data = await res.json();
+    let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
+
+    // Strip Markdown code fences if present
+    text = text.replace(/```json\s*|```/g, "").trim();
+
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("Failed to parse Gemini response:", text);
+      return [];
+    }
+  }
+
+
+
+  async function fetchMovieDetailsFromOMDb(title, media = 'movie') {
+    const res = await fetch(`https://www.omdbapi.com/?t=${title}&type=${media}&apikey=${apikey}`);
+    const data = await res.json();
+    return data;
+  }
+
+
+  async function getDetailedSimilarMovies(movieTitle, media = 'movie') {
+    const baseList = await getSimilarMoviesGemini(movieTitle, media);
+    const detailed = await Promise.all(
+      baseList.map(async (m) => {
+        const title = m.title || m.Title;
+        const details = await fetchMovieDetailsFromOMDb(title, media);
+
+        return {
+          Title: details.Title || title,
+          Poster: details.Poster,
+          imdbRating: details.imdbRating || "N/A",
+          imdbId: m.imdbId || details.imdbID,
+          Type: details.Type ? details.Type.toLowerCase() : 'movie',
+        };
+      })
+    );
+
+    return detailed;
+  }
+
 
 
   useEffect(() => {
+    setSimilarMovies([]);
+
     async function fetchMovie() {
       const res = await fetch(
         `https://www.omdbapi.com/?i=${encodeURIComponent(imdbId)}&type=${media}&apikey=${apikey}`
       );
       const data = await res.json();
+      console.log(data);
       if (data.Response === "True") {
         const mappedMovie = {
           title: data.Title,
@@ -36,12 +110,29 @@ export default function MoviePage() {
             director: data.Director,
             writers: data.Writer,
             budget: "N/A", // OMDb does not provide
-            
+
           },
-          imdbId:imdbId,
-          media_type: media,
+          imdbId: data.imdbId || data.imdbID,
+          media_type: data.media || data.Type || data.Media,
         };
         setMovie(mappedMovie);
+
+        async function loadMoreLikeThis() {
+
+          try {
+            const title = data.Title || data.title;
+            const media = data.media || data.Type || data.Media;
+            console.log(`Fetching similar ${media} for:`, title);
+            const recs = await getDetailedSimilarMovies(title, media);
+            console.log(`Similar Movies for ${title}:`, recs);
+            setSimilarMovies(recs);
+          } catch (e) {
+            console.error("Error fetching similar movies:", e);
+          }
+        }
+        loadMoreLikeThis();
+
+
       } else {
         setMovie({ Response: "False" });
       }
@@ -49,24 +140,56 @@ export default function MoviePage() {
     fetchMovie();
 
 
-    const watchlist = JSON.parse(localStorage.getItem("watchlist")) || [] ;
-    
-    const exists  = watchlist.find((m) => m.imdbId === imdbId);
+    const watchlist = JSON.parse(localStorage.getItem("watchlist")) || [];
 
-    if(exists){
+    const exists = watchlist.find((m) => m.imdbId === imdbId);
+
+    if (exists) {
       setInWatchlist(true);
     }
+
+
 
   }, [imdbId]);
 
   if (!movie) return <p className="text-white">Loading...</p>;
   if (movie.Response === "False") return <p className="text-red-500">Movie not found</p>;
 
-  const handleWatchTrailer = () => {
-    toast.error("Failed to fetch trailer");
+  async function handleWatchTrailer(){
+    console.log("Fetching trailer for:", movie.title, movie.media_type);
+    const prompt = `Provide the **exact YouTube URL** of the **official trailer** of "Movie Name" from the official studio channel or verified source.
+Return **only the URL**, do not add any extra text.
+Movie Name: "${movie.title}"
+Media Type: "${movie.media_type || 'movie'}"`;
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }]
+        })
+      }
+    );
+
+     const data = await res.json();
+  let url = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+  // Clean the output
+  url = url.trim().replace(/["']/g, "");
+  console.log("Trailer URL from Gemini:", url);
+
+
+  if (url.startsWith("https://")) {
+    setTrailerKey(url.replace("watch?v=", "embed/")); // convert YouTube URL to embed
+  } else {
+    toast.error("Trailer not found");
+  }
+
   };
 
-  function handleAddToWatchlist(){
+  function handleAddToWatchlist() {
     const watchlist = JSON.parse(localStorage.getItem("watchlist")) || [];
 
     const exists = watchlist.find((m) => m.imdbId === movie.imdbId);
@@ -81,10 +204,10 @@ export default function MoviePage() {
     toast.success("Added to Watchlist 🎬");
   }
 
-  function handleRemoveFromWatchlist(){
+  function handleRemoveFromWatchlist() {
     const watchlist = JSON.parse(localStorage.getItem("watchlist")) || [];
 
-    if(watchlist.length === 0){
+    if (watchlist.length === 0) {
       toast.error("Watchlist is empty");
       return;
     }
@@ -139,20 +262,20 @@ export default function MoviePage() {
 
               <div className="flex items-center gap-3 mt-4">
                 <div className="flex gap-3 text-sm md:text-sm lg:text-lg md:ml-5">
-                  <button onClick={handleWatchTrailer} className=" md:px-4 md:py-2 px-3 py-2 bg-teal-500/95 rounded-full font-medium shadow-md hover:scale-[1.01] transition">
+                  <button onClick={handleWatchTrailer} className=" cursor-pointer md:px-4 md:py-2 px-3 py-2 bg-teal-500/95 rounded-full font-medium shadow-md hover:scale-[1.01] transition">
                     ▶ Watch Trailer
                   </button>
-                
+
                 </div>
               </div>
 
               <div className="flex items-center gap-3 mt-4">
                 <div className="flex gap-3 text-sm md:text-sm lg:text-lg md:ml-5">
                   <button
-                    onClick={inWatchlist?handleRemoveFromWatchlist :handleAddToWatchlist}
+                    onClick={inWatchlist ? handleRemoveFromWatchlist : handleAddToWatchlist}
                     className="md:px-4 md:py-2 px-3 py-2 bg-transparent border border-teal-400 text-teal-400 rounded-full font-medium shadow-md hover:bg-teal-500/20 transition"
                   >
-                    { inWatchlist? "❌ Remove from Watchlist" : "➕ Add to Watchlist"}
+                    {inWatchlist ? "❌ Remove from Watchlist" : "➕ Add to Watchlist"}
                   </button>
                 </div>
               </div>
@@ -223,13 +346,7 @@ export default function MoviePage() {
             {/* MORE LIKE THIS */}
             <div className="bg-[#141518] rounded-xl p-4 border border-gray-800">
               <h3 className="text-lg font-semibold mb-3">More Like This</h3>
-              <div className="flex gap-3 overflow-x-auto">
-                {movie.gallery.map((g, i) => (
-                  <div key={i} className="w-36 h-20 rounded-lg overflow-hidden">
-                    <img src={g} alt={`gallery-${i}`} className="w-full h-full object-cover" />
-                  </div>
-                ))}
-              </div>
+              <Section data={similarMovies} />
             </div>
           </div>
 
@@ -280,3 +397,72 @@ export default function MoviePage() {
     </div>
   );
 }
+
+const Section = ({ data }) => {
+
+  if (!data || data.length === 0) return (
+    <div className="flex flex-col items-center justify-center m-4 p-4 min-h-[200px]">
+
+      <div className="w-12 h-12 border-4 border-blue-500 border-dashed rounded-full animate-bounce mb-4"></div>
+
+      <p className="text-center lg:text-2xl md:text-xl text-lg font-medium text-gray-700 animate-pulse">
+        Loading Similar Movies...
+      </p>
+
+    </div>
+  );
+
+
+
+  return (
+    <section className="md:px-8 md:py-6 px-2 py-4">
+      <div className="flex justify-between items-center mb-4">
+        {/* <button className="text-cyan-400">See All</button> */}
+      </div>
+      <div className="flex gap-5 overflow-x-auto scrollbar-hide"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        {data.filter(movie => movie.Poster && movie.Poster !== "N/A").map((item, index) => (
+          <MovieCard key={index} {...item} />
+        ))}
+      </div>
+    </section>
+  );
+};
+
+
+const MovieCard = ({ Title, Poster, imdbRating, imdbId, Type }) => {
+  const navigate = useNavigate();
+
+  function handleViewDetails(e) {
+    e.preventDefault();
+    if (imdbId) {
+      navigate(`/page/${Type}/${encodeURIComponent(imdbId)}`)
+    }
+    else
+      navigate(`/page/${Type}/${encodeURIComponent(Title)}`);
+  }
+
+  return (
+    <div onClick={handleViewDetails} className="cursor-pointer md:w-[180px] w-[110px] flex-shrink-0 rounded-xl overflow-hidden shadow-md hover:shadow-xl transform hover:scale-105 transition duration-300 bg-gray-900 text-white">
+      {/* Image with gradient overlay */}
+      <div className="relative h-30 md:h-50 w-full">
+        <img
+          src={Poster}
+          alt={Title}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+
+        {/* Rating badge */}
+        <span className="absolute top-2 right-2 bg-yellow-400 text-black md:text-sm text-xs font-bold px-2 py-1 rounded-md shadow">
+          ⭐ {imdbRating}
+        </span>
+      </div>
+
+      {/* Title */}
+      <div className="p-3">
+        <h3 className="text-sm md:text-xl font-semibold truncate">{Title}</h3>
+      </div>
+    </div>
+  );
+};
