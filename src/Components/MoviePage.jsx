@@ -3,8 +3,11 @@ import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
+  const tmdbApi = import.meta.env.VITE_TMDB_API_KEY;
+
 export default function MoviePage() {
   const apikey = import.meta.env.VITE_OMDB_API_KEY;
+
   const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
   const { media, imdbId } = useParams(); // get movie name from URL
 
@@ -117,7 +120,50 @@ Return only in JSON:
         };
         setMovie(mappedMovie);
 
-        async function loadMoreLikeThis() {
+
+        async function loadMoreLikeThisviaTMDB(imdbId, media) {
+          try {
+            const findUrl = `https://api.themoviedb.org/3/find/${imdbId}?api_key=${tmdbApi}&external_source=imdb_id`;
+            const findRes = await fetch(findUrl);
+            const findData = await findRes.json();
+
+            if ((!findData.movie_results || findData.movie_results.length === 0) && (!findData.tv_results || findData.tv_results.length === 0)) {
+              return [];
+            }
+
+            const tmdbId = findData.movie_results && findData.movie_results.length != 0 ? findData.movie_results[0].id : findData.tv_results && findData.tv_results.length != 0 ? findData.tv_results[0].id : null;
+      
+
+            if (tmdbId && tmdbId === null) {
+              return [];
+            }
+            // Step 2: Fetch similar movies using TMDB ID
+            const tmdbMedia = media === "series" ? "tv" : "movie";
+            const similarUrl = `https://api.themoviedb.org/3/${tmdbMedia}/${tmdbId}/recommendations?api_key=${tmdbApi}&language=en-US&page=1`;
+            const similarRes = await fetch(similarUrl);
+            const similarData = await similarRes.json();
+
+            console.log("Similar Movies (raw TMDB):", similarData.results);
+
+            // Step 3: Map TMDB results to OMDb-style structure for UI
+            const mapped = (similarData.results || []).map(movie => ({
+              Title: movie.title || movie.name,
+              Poster: movie.poster_path
+                ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+                : "/placeholder.jpg",
+              imdbRating: movie.vote_average?.toFixed(1),
+              tmdb_id:movie.id || movie.tmdbId, // TMDB ID for navigation
+              Type: movie.media_type,
+            }));
+
+            return mapped;
+
+          } catch (error) {
+            console.error("Error fetching similar movies:", error);
+            return [];
+          }
+        }
+        async function loadMoreLikeThisviaGemini() {
 
           try {
             const title = data.Title || data.title;
@@ -130,8 +176,21 @@ Return only in JSON:
             console.error("Error fetching similar movies:", e);
           }
         }
-        loadMoreLikeThis();
 
+        let similarData = [];
+
+        try {
+          similarData = await loadMoreLikeThisviaTMDB(data.imdbId || data.imdbID, data.media || data.Type || data.Media);
+          if (!similarData || similarData.length === 0) {
+            console.warn("TMDB blocked or returned no data, switching to Gemini...");
+            similarData = await loadMoreLikeThisviaGemini();
+          }
+        } catch (err) {
+          console.error("TMDB fetch error, using Gemini fallback:", err);
+          similarData = await loadMoreLikeThisviaGemini();
+        }
+
+        setSimilarMovies(similarData);
 
       } else {
         setMovie({ Response: "False" });
@@ -155,7 +214,7 @@ Return only in JSON:
   if (!movie) return <p className="text-white">Loading...</p>;
   if (movie.Response === "False") return <p className="text-red-500">Movie not found</p>;
 
-  async function handleWatchTrailer(){
+  async function handleWatchTrailer() {
     console.log("Fetching trailer for:", movie.title, movie.media_type);
     const prompt = `Provide the **exact YouTube URL** of the **official trailer** of "Movie Name" from the official studio channel or verified source.
 Return **only the URL**, do not add any extra text.
@@ -173,19 +232,19 @@ Media Type: "${movie.media_type || 'movie'}"`;
       }
     );
 
-     const data = await res.json();
-  let url = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const data = await res.json();
+    let url = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
-  // Clean the output
-  url = url.trim().replace(/["']/g, "");
-  console.log("Trailer URL from Gemini:", url);
+    // Clean the output
+    url = url.trim().replace(/["']/g, "");
+    console.log("Trailer URL from Gemini:", url);
 
 
-  if (url.startsWith("https://")) {
-    setTrailerKey(url.replace("watch?v=", "embed/")); // convert YouTube URL to embed
-  } else {
-    toast.error("Trailer not found");
-  }
+    if (url.startsWith("https://")) {
+      setTrailerKey(url.replace("watch?v=", "embed/")); // convert YouTube URL to embed
+    } else {
+      toast.error("Trailer not found");
+    }
 
   };
 
@@ -287,27 +346,6 @@ Media Type: "${movie.media_type || 'movie'}"`;
                   <h3 className="text-sm md:text-base lg:text-xl font-semibold text-gray-200">Synopsis</h3>
                   <p className="text-xs md:text-sm lg:text-base text-gray-400 mt-2">{movie.synopsis}</p>
                 </div>
-
-                {/* <div className="bg-[#0D0D0F] rounded-lg p-4 border border-gray-800">
-                  <h3 className="text-sm font-semibold text-gray-200">Your Rating</h3>
-
-                   <div className="flex items-center gap-1 mt-2">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => setUserRating(s)}
-                        className={`p-1 rounded ${userRating >= s ? "text-yellow-400" : "text-gray-600"}`}
-                        aria-label={`Rate ${s}`}
-                      >
-                        ★
-                      </button>
-                    ))}
-                  </div>
-
-                  <button className="mt-3 px-3 py-2 bg-teal-500/95 rounded-full text-sm">
-                    Write a Review
-                  </button> 
-                </div> */}
               </div>
             </div>
           </div>
@@ -430,16 +468,41 @@ const Section = ({ data }) => {
 };
 
 
-const MovieCard = ({ Title, Poster, imdbRating, imdbId, Type }) => {
+const MovieCard = ({ Title, Poster, imdbRating, imdbId, Type, tmdb_id }) => {
   const navigate = useNavigate();
 
-  function handleViewDetails(e) {
+  async function handleViewDetails(e) {
+    console.log("Clicked on: " + Title)
+    console.log({
+      Title, Poster, imdbRating, imdbId, Type, tmdb_id 
+    })
     e.preventDefault();
-    if (imdbId) {
-      navigate(`/page/${Type}/${encodeURIComponent(imdbId)}`)
+    let finalImdbId = imdbId;
+
+    if (!finalImdbId && tmdb_id) {
+      const mediaType = Type === "series" || Type === "tv" ? "tv" : "movie";
+      finalImdbId = await fetchImdbId(tmdb_id, mediaType);
     }
-    else
-      navigate(`/page/${Type}/${encodeURIComponent(Title)}`);
+
+
+    if (finalImdbId) {
+      navigate(`/page/${Type}/${encodeURIComponent(finalImdbId)}`);
+    } else {
+      console.warn("Could not navigate: IMDb ID missing");
+    }
+  }
+
+  async function fetchImdbId(tmdb_id, media) {
+    try {
+      console.log("Fetching ImdbId")
+      const res = await fetch(`https://api.themoviedb.org/3/${media}/${tmdb_id}/external_ids?api_key=${tmdbApi}`);
+      const data = await res.json();
+      const imdbId = data.imdb_id;
+      return imdbId;
+    } catch (error) {
+      console.log("Could not fetch ImdbIb" + error);
+      return null;
+    }
   }
 
   return (
