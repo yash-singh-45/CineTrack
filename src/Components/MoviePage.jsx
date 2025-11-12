@@ -172,15 +172,17 @@ Return only in JSON:
             const recs = await getDetailedSimilarMovies(title, media);
             console.log(`Similar Movies for ${title}:`, recs);
             setSimilarMovies(recs);
+            return recs;
           } catch (e) {
             console.error("Error fetching similar movies:", e);
+            return [];
           }
         }
 
         let similarData = [];
 
         try {
-          similarData = await loadMoreLikeThisviaTMDB(data.imdbId || data.imdbID, data.media || data.Type || data.Media);
+          similarData = await loadMoreLikeThisviaTMDB(data.imdbId || data.imdbID ,  data.media || data.Type || data.Media );
           if (!similarData || similarData.length === 0) {
             console.warn("TMDB blocked or returned no data, switching to Gemini...");
             similarData = await loadMoreLikeThisviaGemini();
@@ -437,7 +439,7 @@ Media Type: "${movie.media_type || 'movie'}"`;
 }
 
 const Section = ({ data }) => {
-
+  
   if (!data || data.length === 0) return (
     <div className="flex flex-col items-center justify-center m-4 p-4 min-h-[200px]">
 
