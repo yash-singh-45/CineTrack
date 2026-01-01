@@ -9,6 +9,8 @@ import SearchSection from "./Components/SearchSection";
 import Navbar from "./Components/Navbar";
 import MoviePage from "./Components/MoviePage";
 import WatchList from "./Components/WatchList";
+import Actors from "./Components/Actors";
+
 const router = createBrowserRouter([
   // {
   //   path: "/",
@@ -41,6 +43,10 @@ const router = createBrowserRouter([
   {
     path: "/watchlist",
     element: <WatchList />
+  },
+  {
+    path: "/actor/:name",
+    element: <Actors />
   }
 ]);
 
