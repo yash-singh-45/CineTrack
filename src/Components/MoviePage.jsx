@@ -15,6 +15,8 @@ export default function MoviePage() {
   const [trailerKey, setTrailerKey] = useState(""); // YouTube video key
   const [inWatchlist, setInWatchlist] = useState(false);
   const [similarMovies, setSimilarMovies] = useState([]);
+  const navigate = useNavigate();
+
 
   async function getSimilarMoviesGemini(movieTitle, media) {
     const prompt = `Suggest 6 ${media === 'movie' ? 'movies' : 'web series'} similar to "${movieTitle}".
@@ -280,6 +282,12 @@ Media Type: "${movie.media_type || 'movie'}"`;
     toast.success("Removed from Watchlist");
   }
 
+  function handleNameClick(name){
+    const encoded_name = encodeURIComponent(name);
+
+    navigate(`/actor/${encoded_name}`)
+  }
+
   return (
     <div className="min-h-screen bg-[#0B0B0C] text-white p-4 md:p-8 flex justify-center">
       <div className="w-full max-w-7xl">
@@ -362,7 +370,7 @@ Media Type: "${movie.media_type || 'movie'}"`;
               <div className="flex gap-5 md:gap-10 overflow-x-auto pb-2">
                 {movie.cast.map((c) => (
                   <div key={c.name} className="flex-shrink-0 w-20 text-center">
-                    <p className="text-xs md:text-sm lg:text-base mt-2 text-gray-300">{c.name}</p>
+                    <p onClick={() => handleNameClick(c.name)} className=" hover:underline text-xs cursor-pointer md:text-sm  lg:text-base mt-2 text-gray-300">{c.name}</p>
                   </div>
                 ))}
               </div>
