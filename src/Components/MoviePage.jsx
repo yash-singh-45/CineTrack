@@ -2,8 +2,19 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import netflix from '/src/assets/netflix_logo.png'
+import amazon from '/src/assets/amazon_logo.png'
+import disney from '/src/assets/hotstar.png'
+import mxPlayer from '/src/assets/mx_player.png'
+import sonyLiv from '/src/assets/SonyLIV_logo.png'
+import jiostar from '/src/assets/jiohotstar.png'
+import zee5 from '/src/assets/zee5_logo.png'
+import jiocinema from '/src/assets/Jio_cinema_logo.png'
+import appletv from '/src/assets/apple_tv.png'
+import lionsgate from '/src/assets/lionsgate_logo.png'
+import sunnxt from '/src/assets/sunnxt_logo.png'
 
-  const tmdbApi = import.meta.env.VITE_TMDB_API_KEY;
+const tmdbApi = import.meta.env.VITE_TMDB_API_KEY;
 
 export default function MoviePage() {
   const apikey = import.meta.env.VITE_OMDB_API_KEY;
@@ -15,6 +26,11 @@ export default function MoviePage() {
   const [trailerKey, setTrailerKey] = useState(""); // YouTube video key
   const [inWatchlist, setInWatchlist] = useState(false);
   const [similarMovies, setSimilarMovies] = useState([]);
+
+  const [watchProviders, setWatchProviders] = useState([]);
+  const [watchLoading, setWatchLoading] = useState(false);
+
+
   const navigate = useNavigate();
 
 
@@ -134,7 +150,7 @@ Return only in JSON:
             }
 
             const tmdbId = findData.movie_results && findData.movie_results.length != 0 ? findData.movie_results[0].id : findData.tv_results && findData.tv_results.length != 0 ? findData.tv_results[0].id : null;
-      
+
 
             if (tmdbId && tmdbId === null) {
               return [];
@@ -154,7 +170,7 @@ Return only in JSON:
                 ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
                 : "/placeholder.jpg",
               imdbRating: movie.vote_average?.toFixed(1),
-              tmdb_id:movie.id || movie.tmdbId, // TMDB ID for navigation
+              tmdb_id: movie.id || movie.tmdbId, // TMDB ID for navigation
               Type: movie.media_type,
             }));
 
@@ -184,7 +200,7 @@ Return only in JSON:
         let similarData = [];
 
         try {
-          similarData = await loadMoreLikeThisviaTMDB(data.imdbId || data.imdbID ,  data.media || data.Type || data.Media );
+          similarData = await loadMoreLikeThisviaTMDB(data.imdbId || data.imdbID, data.media || data.Type || data.Media);
           if (!similarData || similarData.length === 0) {
             console.warn("TMDB blocked or returned no data, switching to Gemini...");
             similarData = await loadMoreLikeThisviaGemini();
@@ -211,9 +227,126 @@ Return only in JSON:
       setInWatchlist(true);
     }
 
-
-
   }, [imdbId]);
+
+
+  const PROVIDER_MAP = {
+    // Netflix
+    "Netflix": "Netflix",
+
+    // Amazon Prime Video
+    "Amazon Prime Video": "Amazon",
+    "Prime Video": "Amazon",
+    "Amazon Video": "Amazon",
+    "Amazon":"Amazon",
+
+    // Disney / Hotstar
+    "Disney Plus Hotstar": "Disney",
+    "Disney+ Hotstar": "Disney",
+    "Hotstar": "Disney",
+    "Disney Plus": "Disney",
+    "Disney+": "Disney",
+    "Disney": "Disney",
+
+    // Apple TV
+    "Apple TV+": "Apple TV+",
+    "Apple TV Plus": "Apple TV+",
+    "Apple TV": "Apple TV+",
+
+    // Sony
+    "Sony LIV": "Sony LIV",
+    "SonyLIV": "Sony LIV",
+
+    // Zee
+    "Zee5": "Zee5",
+    "ZEE5": "Zee5",
+
+    // Jio
+    "Jio Cinema": "JioCinema",
+    "JioCinema": "JioCinema",
+    "Jio Hotstar": "JioHotstar",
+    "JioStar": "JioHotstar",
+
+    // MX
+    "MX Player": "MX Player",
+    "MXPlayer": "MX Player",
+
+    // Optional / rare but seen
+    "Lionsgate Play": "Lionsgate Play",
+    "Sun NXT": "Sun NXT"
+  };
+
+
+  const PROVIDER_LOGOS = {
+    // Netflix
+    "Netflix": netflix,
+
+    // Amazon
+    "Amazon": amazon,
+
+    // Disney / Hotstar
+    "Disney": disney,
+
+    // Jio
+    "JioCinema": jiocinema,
+    
+    "JioHotstar": jiostar,
+
+    // Sony
+    "Sony LIV": sonyLiv,
+    
+
+    // Zee
+    "Zee5": zee5,
+
+    // MX
+    "MX Player": mxPlayer,
+
+    // Apple
+    "Apple TV+": appletv,
+
+    "Lionsgate Play": lionsgate,
+    "Sun NXT": sunnxt
+  };
+
+  // GET SIMILAR SECTION
+  useEffect(() => {
+    if (!imdbId) return;
+
+    async function fetchStream() {
+      const watch_apikey = import.meta.env.VITE_WATCHMODE_API_KEY;
+
+      const url = `https://api.watchmode.com/v1/title/${imdbId}/sources/?apiKey=${watch_apikey}&regions=IN`;
+
+      try {
+        const response = await fetch(url);
+        const result = await response.json();
+        console.log(result);
+
+        if (result.length == 0) return;
+
+        const data = result.map(movie => {
+          const provider = PROVIDER_MAP[movie.name];
+          return {
+            name: provider,
+            url: movie.web_url,
+            logo: PROVIDER_LOGOS[provider],
+            type: movie.type
+          }
+        }).filter(Boolean)
+
+
+        setWatchProviders(data);
+
+      } catch (error) {
+        console.error(error);
+      }
+
+    }
+
+    fetchStream();
+
+  }, [imdbId])
 
   if (!movie) return <p className="text-white">Loading...</p>;
   if (movie.Response === "False") return <p className="text-red-500">Movie not found</p>;
@@ -282,11 +415,13 @@ Media Type: "${movie.media_type || 'movie'}"`;
     toast.success("Removed from Watchlist");
   }
 
-  function handleNameClick(name){
+  function handleNameClick(name) {
     const encoded_name = encodeURIComponent(name);
 
     navigate(`/actor/${encoded_name}`)
   }
+
+
 
   return (
     <div className="min-h-screen bg-[#0B0B0C] text-white p-4 md:p-8 flex justify-center">
@@ -364,6 +499,23 @@ Media Type: "${movie.media_type || 'movie'}"`;
         {/* CAST, REVIEWS, DETAILS */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 space-y-4">
+
+            {/* STREAMING INFO */}
+            <div className="bg-[#141518] rounded-xl p-4 border border-gray-800">
+              <h3 className="text-lg md:text-xl lg:text-2xl font-semibold mb-3">Stream On</h3>
+              <div className="flex gap-5 md:gap-10 overflow-x-auto pb-2">
+                {watchProviders.filter(c => c.type == 'sub' || c.type== 'free').map((c) => (
+                  <div key={c.name} className="flex-shrink-0 w-20 text-center">
+                    <a href={c.url} target="_blank" rel="noopener noreferrer">
+                      <img src={c.logo} alt={c.name} className=" w-15 h-15 p-0.1 md:w-17 md:h-17 object-contain md:p-0.5 border rounded-lg 
+                     shadow-md hover:scale-101 transition-transform duration-200 cursor-pointer" />
+                    </a>
+                    <p className=" hover:underline text-xs cursor-pointer md:text-sm  lg:text-base mt-2 text-gray-300">{c.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* CAST */}
             <div className="bg-[#141518] rounded-xl p-4 border border-gray-800">
               <h3 className="text-lg md:text-xl lg:text-2xl font-semibold mb-3">Cast</h3>
@@ -447,7 +599,7 @@ Media Type: "${movie.media_type || 'movie'}"`;
 }
 
 const Section = ({ data }) => {
-  
+
   if (!data || data.length === 0) return (
     <div className="flex flex-col items-center justify-center m-4 p-4 min-h-[200px]">
 
@@ -484,7 +636,7 @@ const MovieCard = ({ Title, Poster, imdbRating, imdbId, Type, tmdb_id }) => {
   async function handleViewDetails(e) {
     console.log("Clicked on: " + Title)
     console.log({
-      Title, Poster, imdbRating, imdbId, Type, tmdb_id 
+      Title, Poster, imdbRating, imdbId, Type, tmdb_id
     })
     e.preventDefault();
     let finalImdbId = imdbId;
