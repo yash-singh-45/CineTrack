@@ -505,7 +505,7 @@ Media Type: "${movie.media_type || 'movie'}"`;
               <h3 className="text-lg md:text-xl lg:text-2xl font-semibold mb-3">Stream On</h3>
               <div className="flex gap-5 md:gap-10 overflow-x-auto pb-2">
                 {watchProviders.filter(c => c.type == 'sub' || c.type== 'free').map((c) => (
-                  <div key={c.name} className="flex-shrink-0 w-20 text-center">
+                  <div key={c.name} className="ml-1 md:ml-2 flex-shrink-0 w-20 text-center">
                     <a href={c.url} target="_blank" rel="noopener noreferrer">
                       <img src={c.logo} alt={c.name} className=" w-15 h-15 p-0.1 md:w-17 md:h-17 object-contain md:p-0.5 border rounded-lg 
                      shadow-md hover:scale-101 transition-transform duration-200 cursor-pointer" />
@@ -691,3 +691,4 @@ const MovieCard = ({ Title, Poster, imdbRating, imdbId, Type, tmdb_id }) => {
     </div>
   );
 };
+
