@@ -52,7 +52,6 @@ const Actors = () => {
         });
 
         const wdData = await wdRes.json();
-        console.log(wdData)
 
         setTotalFilms(wdData.results.bindings.length);
         const films = await Promise.all(
@@ -65,7 +64,6 @@ const Actors = () => {
                     );
 
                     const omdbData = await omdbRes.json();
-                    console.log(omdbData)
 
                     return {
                         title: omdbData.Title || title,
@@ -83,7 +81,6 @@ const Actors = () => {
                     };
                 }
                 catch {
-                    console.log("OMDB API failed")
                     return {
                         title,
                         data: null
@@ -92,7 +89,6 @@ const Actors = () => {
             })
         )
         setFilmData(films);
-        console.log(films)
     }
 
     const visibleCount = showAll ? totalFilms : 12;
@@ -229,4 +225,5 @@ function MovieCard({ movie, navigate }) {
             </div>
         </div>
     );
+
 }
