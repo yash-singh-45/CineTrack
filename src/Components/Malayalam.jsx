@@ -123,7 +123,6 @@ const Malayalam = () => {
                                 media_type: "movie",
                             };
                         } catch (err) {
-                            console.error("Failed to fetch movie details for:", movie.title, err);
                             return {
                                 title: movie.title || movie.name,
                                 image: movie.backdrop_path
@@ -138,7 +137,6 @@ const Malayalam = () => {
 
                 setMalayalamMovies(moviesWithImdb);
             } catch (err) {
-                console.log(err);
             }
         }
         fetchMalayalamMovies();
@@ -149,3 +147,4 @@ const Malayalam = () => {
 }
 
 export default Malayalam
+
