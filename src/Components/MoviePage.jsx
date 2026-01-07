@@ -68,7 +68,6 @@ Return only in JSON:
     try {
       return JSON.parse(text);
     } catch (e) {
-      console.error("Failed to parse Gemini response:", text);
       return [];
     }
   }
@@ -112,7 +111,6 @@ Return only in JSON:
         `https://www.omdbapi.com/?i=${encodeURIComponent(imdbId)}&type=${media}&apikey=${apikey}`
       );
       const data = await res.json();
-      console.log(data);
       if (data.Response === "True") {
         const mappedMovie = {
           title: data.Title,
@@ -177,7 +175,6 @@ Return only in JSON:
             return mapped;
 
           } catch (error) {
-            console.error("Error fetching similar movies:", error);
             return [];
           }
         }
@@ -186,13 +183,10 @@ Return only in JSON:
           try {
             const title = data.Title || data.title;
             const media = data.media || data.Type || data.Media;
-            console.log(`Fetching similar ${media} for:`, title);
             const recs = await getDetailedSimilarMovies(title, media);
-            console.log(`Similar Movies for ${title}:`, recs);
             setSimilarMovies(recs);
             return recs;
           } catch (e) {
-            console.error("Error fetching similar movies:", e);
             return [];
           }
         }
@@ -202,11 +196,9 @@ Return only in JSON:
         try {
           similarData = await loadMoreLikeThisviaTMDB(data.imdbId || data.imdbID, data.media || data.Type || data.Media);
           if (!similarData || similarData.length === 0) {
-            console.warn("TMDB blocked or returned no data, switching to Gemini...");
             similarData = await loadMoreLikeThisviaGemini();
           }
         } catch (err) {
-          console.error("TMDB fetch error, using Gemini fallback:", err);
           similarData = await loadMoreLikeThisviaGemini();
         }
 
@@ -321,7 +313,6 @@ Return only in JSON:
       try {
         const response = await fetch(url);
         const result = await response.json();
-        console.log(result);
 
         if (result.length == 0) return;
 
@@ -339,7 +330,6 @@ Return only in JSON:
         setWatchProviders(data);
 
       } catch (error) {
-        console.error(error);
       }
 
     }
@@ -352,7 +342,6 @@ Return only in JSON:
   if (movie.Response === "False") return <p className="text-red-500">Movie not found</p>;
 
   async function handleWatchTrailer() {
-    console.log("Fetching trailer for:", movie.title, movie.media_type);
     const prompt = `Provide the **exact YouTube URL** of the **official trailer** of "Movie Name" from the official studio channel or verified source.
 Return **only the URL**, do not add any extra text.
 Movie Name: "${movie.title}"
@@ -662,7 +651,6 @@ const MovieCard = ({ Title, Poster, imdbRating, imdbId, Type, tmdb_id }) => {
       const imdbId = data.imdb_id;
       return imdbId;
     } catch (error) {
-      console.log("Could not fetch ImdbIb" + error);
       return null;
     }
   }
@@ -691,4 +679,5 @@ const MovieCard = ({ Title, Poster, imdbRating, imdbId, Type, tmdb_id }) => {
     </div>
   );
 };
+
 
