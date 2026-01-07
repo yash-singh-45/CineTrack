@@ -129,7 +129,6 @@ const TopRatedIndianTV = () => {
 
                             };
                         } catch (err) {
-                            console.error("Failed to fetch movie details for:", movie.title, err);
                             return {
                                 title: movie.title || movie.name,
                                 image: movie.backdrop_path
@@ -144,7 +143,6 @@ const TopRatedIndianTV = () => {
                 setTopRatedIndianTV(moviesWithImdb);
 
             } catch (err) {
-                console.log(err);
             }
         }
         fetchTopRatedIndianTV();
@@ -157,3 +155,4 @@ const TopRatedIndianTV = () => {
 }
 
 export default TopRatedIndianTV
+
