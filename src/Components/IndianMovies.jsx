@@ -115,7 +115,6 @@ const IndianMovies = () => {
                                 media_type:"movie",
                             };
                         }catch(err){
-                            console.error("Failed to fetch movie details for:", movie.title, err);
                             return {
                                 title: movie.title || movie.name,
                                 image: movie.backdrop_path
@@ -129,7 +128,6 @@ const IndianMovies = () => {
                 );
                 setIndianMovies(moviesWithImdb);
             } catch (err) {
-                console.log(err);
             }
         }
         fetchTopIndianMovies();
@@ -143,4 +141,5 @@ const IndianMovies = () => {
 
 
 export default IndianMovies
+
 
