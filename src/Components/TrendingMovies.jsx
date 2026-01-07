@@ -104,7 +104,6 @@ const TrendingMovies = () => {
 
                             };
                         } catch (err) {
-                            console.error("Failed to fetch movie details for:", movie.title, err);
                             return {
                                 title: movie.title || movie.name,
                                 image: movie.backdrop_path
@@ -118,7 +117,6 @@ const TrendingMovies = () => {
                 );
                 setTrendingMovies(moviesWithImdb);
             } catch (err) {
-                console.error(err);
             }
         };
         fetchTrendingMovies();
@@ -131,3 +129,4 @@ const TrendingMovies = () => {
 
 
 export default TrendingMovies
+
