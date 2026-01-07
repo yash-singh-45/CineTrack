@@ -23,12 +23,12 @@ export default function MoviePage() {
   const { media, imdbId } = useParams(); // get movie name from URL
 
   const [movie, setMovie] = useState(null);
-  const [trailerKey, setTrailerKey] = useState(""); // YouTube video key
   const [inWatchlist, setInWatchlist] = useState(false);
   const [similarMovies, setSimilarMovies] = useState([]);
 
   const [watchProviders, setWatchProviders] = useState([]);
-  const [watchLoading, setWatchLoading] = useState(false);
+  // const [watchLoading, setWatchLoading] = useState(false);
+  const [embedUrl, setEmbedUrl] = useState(null);
 
 
   const navigate = useNavigate();
@@ -68,6 +68,7 @@ Return only in JSON:
     try {
       return JSON.parse(text);
     } catch (e) {
+      console.error("Failed to parse Gemini response:", text);
       return [];
     }
   }
@@ -111,6 +112,7 @@ Return only in JSON:
         `https://www.omdbapi.com/?i=${encodeURIComponent(imdbId)}&type=${media}&apikey=${apikey}`
       );
       const data = await res.json();
+      console.log(data);
       if (data.Response === "True") {
         const mappedMovie = {
           title: data.Title,
@@ -175,6 +177,7 @@ Return only in JSON:
             return mapped;
 
           } catch (error) {
+            console.error("Error fetching similar movies:", error);
             return [];
           }
         }
@@ -183,10 +186,13 @@ Return only in JSON:
           try {
             const title = data.Title || data.title;
             const media = data.media || data.Type || data.Media;
+            console.log(`Fetching similar ${media} for:`, title);
             const recs = await getDetailedSimilarMovies(title, media);
+            console.log(`Similar Movies for ${title}:`, recs);
             setSimilarMovies(recs);
             return recs;
           } catch (e) {
+            console.error("Error fetching similar movies:", e);
             return [];
           }
         }
@@ -196,9 +202,11 @@ Return only in JSON:
         try {
           similarData = await loadMoreLikeThisviaTMDB(data.imdbId || data.imdbID, data.media || data.Type || data.Media);
           if (!similarData || similarData.length === 0) {
+            console.warn("TMDB blocked or returned no data, switching to Gemini...");
             similarData = await loadMoreLikeThisviaGemini();
           }
         } catch (err) {
+          console.error("TMDB fetch error, using Gemini fallback:", err);
           similarData = await loadMoreLikeThisviaGemini();
         }
 
@@ -230,7 +238,7 @@ Return only in JSON:
     "Amazon Prime Video": "Amazon",
     "Prime Video": "Amazon",
     "Amazon Video": "Amazon",
-    "Amazon":"Amazon",
+    "Amazon": "Amazon",
 
     // Disney / Hotstar
     "Disney Plus Hotstar": "Disney",
@@ -281,12 +289,12 @@ Return only in JSON:
 
     // Jio
     "JioCinema": jiocinema,
-    
+
     "JioHotstar": jiostar,
 
     // Sony
     "Sony LIV": sonyLiv,
-    
+
 
     // Zee
     "Zee5": zee5,
@@ -313,6 +321,7 @@ Return only in JSON:
       try {
         const response = await fetch(url);
         const result = await response.json();
+        console.log(result);
 
         if (result.length == 0) return;
 
@@ -330,6 +339,7 @@ Return only in JSON:
         setWatchProviders(data);
 
       } catch (error) {
+        console.error(error);
       }
 
     }
@@ -341,38 +351,18 @@ Return only in JSON:
   if (!movie) return <p className="text-white">Loading...</p>;
   if (movie.Response === "False") return <p className="text-red-500">Movie not found</p>;
 
-  async function handleWatchTrailer() {
-    const prompt = `Provide the **exact YouTube URL** of the **official trailer** of "Movie Name" from the official studio channel or verified source.
-Return **only the URL**, do not add any extra text.
-Movie Name: "${movie.title}"
-Media Type: "${movie.media_type || 'movie'}"`;
+  async function handleWatchTrailer(imdbId) {
+    if (!imdbId) return;
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }]
-        })
-      }
-    );
-
-    const data = await res.json();
-    let url = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-    // Clean the output
-    url = url.trim().replace(/["']/g, "");
-    console.log("Trailer URL from Gemini:", url);
-
-
-    if (url.startsWith("https://")) {
-      setTrailerKey(url.replace("watch?v=", "embed/")); // convert YouTube URL to embed
-    } else {
-      toast.error("Trailer not found");
+    try {
+      const trailerUrl = `https://imdb.iamidiotareyoutoo.com/media/${imdbId}`;
+      setEmbedUrl(trailerUrl); // directly embed
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load trailer");
     }
+  }
 
-  };
 
   function handleAddToWatchlist() {
     const watchlist = JSON.parse(localStorage.getItem("watchlist")) || [];
@@ -455,12 +445,38 @@ Media Type: "${movie.media_type || 'movie'}"`;
 
               <div className="flex items-center gap-3 mt-4">
                 <div className="flex gap-3 text-sm md:text-sm lg:text-lg md:ml-5">
-                  <button onClick={handleWatchTrailer} className=" cursor-pointer md:px-4 md:py-2 px-3 py-2 bg-teal-500/95 rounded-full font-medium shadow-md hover:scale-[1.01] transition">
+                  <button
+                    onClick={() => handleWatchTrailer(imdbId)}
+                    className="cursor-pointer md:px-4 md:py-2 px-3 py-2 bg-teal-500/95 rounded-full font-medium shadow-md hover:scale-[1.01] transition"
+                  >
                     ▶ Watch Trailer
                   </button>
-
                 </div>
               </div>
+
+              {embedUrl && (
+                <div className="fixed inset-0 bg-black/80 flex justify-center items-center z-50 p-4">
+                  <div className="relative w-full max-w-3xl aspect-video rounded-lg overflow-hidden shadow-2xl">
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      src={embedUrl}
+                      title={`${movie.title} Trailer`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="rounded-lg"
+                    />
+                    <button
+                      className="absolute top-2 right-2 text-white text-3xl font-bold hover:text-red-500"
+                      onClick={() => setEmbedUrl("")}
+                    >
+                      &times;
+                    </button>
+                  </div>
+                </div>
+              )}
+
+
 
               <div className="flex items-center gap-3 mt-4">
                 <div className="flex gap-3 text-sm md:text-sm lg:text-lg md:ml-5">
@@ -493,7 +509,7 @@ Media Type: "${movie.media_type || 'movie'}"`;
             <div className="bg-[#141518] rounded-xl p-4 border border-gray-800">
               <h3 className="text-lg md:text-xl lg:text-2xl font-semibold mb-3">Stream On</h3>
               <div className="flex gap-5 md:gap-10 overflow-x-auto pb-2">
-                {watchProviders.filter(c => c.type == 'sub' || c.type== 'free').map((c) => (
+                {watchProviders.filter(c => c.type == 'sub' || c.type == 'free').map((c) => (
                   <div key={c.name} className="ml-1 md:ml-2 flex-shrink-0 w-20 text-center">
                     <a href={c.url} target="_blank" rel="noopener noreferrer">
                       <img src={c.logo} alt={c.name} className=" w-15 h-15 p-0.1 md:w-17 md:h-17 object-contain md:p-0.5 border rounded-lg 
@@ -562,26 +578,7 @@ Media Type: "${movie.media_type || 'movie'}"`;
 
         <div className="h-12" />
       </div>
-      {trailerKey && (
-        <div className="fixed inset-0 bg-black/80 flex justify-center items-center z-50 p-4">
-          <div className="relative w-full max-w-3xl bg-gray-900 rounded-lg overflow-hidden">
-            <iframe
-              width="100%"
-              height="400"
-              src={trailerKey}
-              title="Movie Trailer"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
-            <button
-              className="absolute top-2 right-2 text-white text-3xl font-bold hover:text-red-500"
-              onClick={() => setTrailerKey("")}
-            >
-              &times;
-            </button>
-          </div>
-        </div>
-      )}
+      
 
     </div>
   );
@@ -651,6 +648,7 @@ const MovieCard = ({ Title, Poster, imdbRating, imdbId, Type, tmdb_id }) => {
       const imdbId = data.imdb_id;
       return imdbId;
     } catch (error) {
+      console.log("Could not fetch ImdbIb" + error);
       return null;
     }
   }
@@ -679,5 +677,3 @@ const MovieCard = ({ Title, Poster, imdbRating, imdbId, Type, tmdb_id }) => {
     </div>
   );
 };
-
-
