@@ -27,11 +27,9 @@ const SearchSection = () => {
       try {
         const movieRes = await fetch(`https://www.omdbapi.com/?s=${encodeURIComponent(query)}&type=movie&apikey=${apikey}`);
         const movieData = await movieRes.json();
-        // console.log(movieData);
 
         const tvRes = await fetch(`https://www.omdbapi.com/?s=${encodeURIComponent(query)}&type=series&apikey=${apikey}`);
         const tvData = await tvRes.json();
-        // console.log(tvData);
 
         const formatData = (data, type) => {
           if (!data || data.Response === "False") return [];
@@ -50,7 +48,6 @@ const SearchSection = () => {
         ]);
       }
       catch (e) {
-        console.log(e);
       }
     }
     fetchMovies();
@@ -104,5 +101,6 @@ function MovieCard({ movie, navigate }) {
     </div>
   );
 }
+
 
 
