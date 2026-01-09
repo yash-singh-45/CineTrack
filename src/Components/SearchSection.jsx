@@ -1,30 +1,72 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Navigate } from 'react-router-dom';
 
 
 
 const apikey = import.meta.env.VITE_OMDB_API_KEY;
-const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
-const BASE_URL = "https://api.themoviedb.org/3";
 
 const SearchSection = () => {
 
   const [movieResults, setMovieResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const location = useLocation();
   const navigate = useNavigate();
 
-
+  const storage_key = 'search_history';
+  const max_items = 7;
   const query = new URLSearchParams(location.search).get("query");
+
+  const normalizedQuery = query ? query.trim().toLowerCase() : "";
+
+
+  const getSearchHistory = () => {
+    const data = localStorage.getItem(storage_key);
+    return data ? JSON.parse(data) : [];
+  };
+
+  const saveSearch = (query, results) => {
+    let history = getSearchHistory();
+
+    history = history.filter(item => item.query != query);
+
+    history.unshift({
+      query,
+      results,
+      timestamp: Date.now() / 1000
+    });
+
+    history = history.slice(0, max_items);
+
+    localStorage.setItem(storage_key, JSON.stringify(history));
+  }
+
+  const getCacheSearched = (query) => {
+    const history = getSearchHistory();
+    const data = history.find(item => item.query === query)
+    if (!data) return null;
+
+    const currTime = Date.now() / 1000;
+    if (currTime - data.timestamp <= 21600) return data;
+    else return null;
+  }
+
+
   useEffect(() => {
-    setMovieResults([]);
 
     if (!query)
       return;
 
+    const cached = getCacheSearched(normalizedQuery);
+    if (cached) {
+      setMovieResults(cached.results);
+      return;
+    }
 
     async function fetchMovies() {
+
       try {
+        setLoading(true);
         const movieRes = await fetch(`https://www.omdbapi.com/?s=${encodeURIComponent(query)}&type=movie&apikey=${apikey}`);
         const movieData = await movieRes.json();
 
@@ -33,7 +75,7 @@ const SearchSection = () => {
 
         const formatData = (data, type) => {
           if (!data || data.Response === "False") return [];
-          return data.Search.filter(item => item.Poster && item.Poster!="N/A").map(item => ({
+          return data.Search.filter(item => item.Poster && item.Poster != "N/A").map(item => ({
             title: item.Title,
             image: item.Poster !== "N/A" ? item.Poster : "/fallback-image.jpg",
             rating: "N/A", // Optional: fetch details if you want IMDb rating
@@ -42,33 +84,46 @@ const SearchSection = () => {
           }));
         };
 
-        setMovieResults([
+        const finalResults = [
           ...formatData(movieData, "movie"),
-          ...formatData(tvData, "tv")
-        ]);
+          ...formatData(tvData, "tv"),
+        ];
+
+        setMovieResults(finalResults);
+        saveSearch(normalizedQuery, finalResults);
       }
       catch (e) {
+        console.log(e);
+      } finally {
+        setLoading(false);
       }
     }
     fetchMovies();
-  }, [query])
+  }, [normalizedQuery])
 
 
   return (
     <div className="bg-[#0F1117] min-h-screen px-4 sm:px-10 py-8 text-white">
-
-      <div className="mb-6">
+      {loading ? <div className="mb-6">
         <h2 className="text-2xl font-semibold">
-          Results for <span className="text-[#00FFD1]">{query}</span>
+          Searching for <span className="text-[#00FFD1]">{query}</span>
         </h2>
-        <p className="text-gray-400">Showing {movieResults.length} results</p>
-      </div>
+      </div> :
+        <>
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold">
+              Results for <span className="text-[#00FFD1]">{query}</span>
+            </h2>
+            <p className="text-gray-400"> {movieResults.length == 0 ? "No Results" : `Showing ${movieResults.length} results`} </p>
+          </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 md:gap-6">
-        {movieResults.filter(movie => movie.rating != 0).map((movie) => (
-          <MovieCard key={movie.imdbId} movie={movie} navigate={navigate} />
-        ))}
-      </div>
+          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 md:gap-6">
+            {movieResults.filter(movie => movie.rating != 0).map((movie) => (
+              <MovieCard key={movie.imdbId} movie={movie} navigate={navigate} />
+            ))}
+          </div>
+        </>
+      }
     </div>
   );
 };
