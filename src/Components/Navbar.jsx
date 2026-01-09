@@ -64,9 +64,11 @@ const Navbar = () => {
     const value = e.target.value;
     setSearchBox(value);
 
+
     if (!value.trim()) {
-      setSuggestion([]);
-      setShowDropdown(false);
+      const latest = recent.map(item => item.query).slice(0, 5);
+      setSuggestion(latest);
+      setShowDropdown(latest.length > 0);
       return;
     }
 
@@ -110,7 +112,15 @@ const Navbar = () => {
             onKeyDown={handleKeyDown}
             ref={inputRef}
             onChange={handleChange}
-            onFocus={() => { if (suggestion.length > 0) setShowDropdown(true) }}
+            onFocus={() => {
+              if (!searchBox.trim()) {
+                const latest = recent.map(item => item.query).slice(0, 5);
+                setSuggestion(latest);
+                setShowDropdown(latest.length > 0);
+              } else if (suggestion.length > 0) {
+                setShowDropdown(true);
+              }
+            }}
             className="w-full hover:border-2 text-1xl md:text-2xl  px-2 py-1 md:px-4 md:py-2 rounded-full bg-[#1C1F26] border border-cyan-500 text-white focus:outline-none"
           />
 
