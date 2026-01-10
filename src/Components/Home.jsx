@@ -16,9 +16,7 @@ const Home = () => {
     const IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"; // or w780, w300 depending on size
     const BASE_URL = "https://api.themoviedb.org/3";
     const navigate = useNavigate();
-    function handleViewWatchList() {
-        navigate("/watchlist")
-    }
+   
     return (
         <div className="bg-[#0F1115] text-white min-h-screen font-sans">
             <Navbar />
@@ -33,3 +31,4 @@ const Home = () => {
 };
 
 export default Home;
+
