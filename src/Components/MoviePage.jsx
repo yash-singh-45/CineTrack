@@ -10,9 +10,10 @@ import sonyLiv from '/src/assets/SonyLIV_logo.png'
 import jiostar from '/src/assets/jiohotstar.png'
 import zee5 from '/src/assets/zee5_logo.png'
 import jiocinema from '/src/assets/Jio_cinema_logo.png'
-import appletv from '/src/assets/apple_tv.png'
+import appletv from '/src/assets/apple-tv.jpg'
 import lionsgate from '/src/assets/lionsgate_logo.png'
 import sunnxt from '/src/assets/sunnxt_logo.png'
+// import Skeleton from "react-loading-skeleton";
 
 const tmdbApi = import.meta.env.VITE_TMDB_API_KEY;
 
@@ -68,7 +69,7 @@ Return only in JSON:
     try {
       return JSON.parse(text);
     } catch (e) {
-      console.error("Failed to parse Gemini response:", text);
+      // console.error("Failed to parse Gemini response:", text);
       return [];
     }
   }
@@ -161,7 +162,7 @@ Return only in JSON:
             const similarRes = await fetch(similarUrl);
             const similarData = await similarRes.json();
 
-            console.log("Similar Movies (raw TMDB):", similarData.results);
+            // console.log("Similar Movies (raw TMDB):", similarData.results);
 
             // Step 3: Map TMDB results to OMDb-style structure for UI
             const mapped = (similarData.results || []).map(movie => ({
@@ -177,7 +178,7 @@ Return only in JSON:
             return mapped;
 
           } catch (error) {
-            console.error("Error fetching similar movies:", error);
+            // console.error("Error fetching similar movies:", error);
             return [];
           }
         }
@@ -186,13 +187,13 @@ Return only in JSON:
           try {
             const title = data.Title || data.title;
             const media = data.media || data.Type || data.Media;
-            console.log(`Fetching similar ${media} for:`, title);
+            // console.log(`Fetching similar ${media} for:`, title);
             const recs = await getDetailedSimilarMovies(title, media);
-            console.log(`Similar Movies for ${title}:`, recs);
+            // console.log(`Similar Movies for ${title}:`, recs);
             setSimilarMovies(recs);
             return recs;
           } catch (e) {
-            console.error("Error fetching similar movies:", e);
+            // console.error("Error fetching similar movies:", e);
             return [];
           }
         }
@@ -202,11 +203,11 @@ Return only in JSON:
         try {
           similarData = await loadMoreLikeThisviaTMDB(data.imdbId || data.imdbID, data.media || data.Type || data.Media);
           if (!similarData || similarData.length === 0) {
-            console.warn("TMDB blocked or returned no data, switching to Gemini...");
+            // console.warn("TMDB blocked or returned no data, switching to Gemini...");
             similarData = await loadMoreLikeThisviaGemini();
           }
         } catch (err) {
-          console.error("TMDB fetch error, using Gemini fallback:", err);
+          // console.error("TMDB fetch error, using Gemini fallback:", err);
           similarData = await loadMoreLikeThisviaGemini();
         }
 
@@ -249,9 +250,10 @@ Return only in JSON:
     "Disney": "Disney",
 
     // Apple TV
-    "Apple TV+": "Apple TV+",
-    "Apple TV Plus": "Apple TV+",
-    "Apple TV": "Apple TV+",
+    "Apple TV+": "Apple TV",
+    "Apple TV Plus": "Apple TV",
+    "Apple TV": "Apple TV",
+    "AppleTV": "Apple TV",
 
     // Sony
     "Sony LIV": "Sony LIV",
@@ -303,7 +305,7 @@ Return only in JSON:
     "MX Player": mxPlayer,
 
     // Apple
-    "Apple TV+": appletv,
+    "Apple TV": appletv,
 
     "Lionsgate Play": lionsgate,
     "Sun NXT": sunnxt
@@ -321,25 +323,32 @@ Return only in JSON:
       try {
         const response = await fetch(url);
         const result = await response.json();
-        console.log(result);
+        // console.log(result);
 
         if (result.length == 0) return;
 
-        const data = result.map(movie => {
-          const provider = PROVIDER_MAP[movie.name];
-          return {
-            name: provider,
-            url: movie.web_url,
-            logo: PROVIDER_LOGOS[provider],
-            type: movie.type
-          }
-        }).filter(Boolean)
+
+
+        const data = result
+          .map(movie => {
+            const provider = PROVIDER_MAP[movie.name];
+            if (!provider || !(movie.type==='rent' || movie.type==='sub' || movie.type==='free')) return; 
+            return {
+              name: provider,
+              url: movie.web_url,
+              logo: PROVIDER_LOGOS[provider],
+              type: movie.type
+            };
+          })
+          .filter(Boolean)
+          .filter((v, i, a) => a.findIndex(p => p.name === v.name) === i); 
+
 
 
         setWatchProviders(data);
 
       } catch (error) {
-        console.error(error);
+        // console.error(error);
       }
 
     }
@@ -358,7 +367,7 @@ Return only in JSON:
       const trailerUrl = `https://imdb.iamidiotareyoutoo.com/media/${imdbId}`;
       setEmbedUrl(trailerUrl); // directly embed
     } catch (err) {
-      console.error(err);
+      // console.error(err);
       toast.error("Failed to load trailer");
     }
   }
@@ -399,7 +408,6 @@ Return only in JSON:
 
     navigate(`/actor/${encoded_name}`)
   }
-
 
 
   return (
@@ -464,6 +472,7 @@ Return only in JSON:
                       title={`${movie.title} Trailer`}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
+
                       className="rounded-lg"
                     />
                     <button
@@ -509,15 +518,17 @@ Return only in JSON:
             <div className="bg-[#141518] rounded-xl p-4 border border-gray-800">
               <h3 className="text-lg md:text-xl lg:text-2xl font-semibold mb-3">Stream On</h3>
               <div className="flex gap-5 md:gap-10 overflow-x-auto pb-2">
-                {watchProviders.filter(c => c.type == 'sub' || c.type == 'free').map((c) => (
-                  <div key={c.name} className="ml-1 md:ml-2 flex-shrink-0 w-20 text-center">
-                    <a href={c.url} target="_blank" rel="noopener noreferrer">
-                      <img src={c.logo} alt={c.name} className=" w-15 h-15 p-0.1 md:w-17 md:h-17 object-contain md:p-0.5 border rounded-lg 
+                {!watchProviders || watchProviders.length == 0 ? <span>N/A</span>
+                  :
+                  watchProviders.filter(c => c.type == 'sub' || c.type == 'free' || c.type == 'rent').map((c) => (
+                    <div key={c.name} className="ml-1 md:ml-2 flex flex-col items-center w-20 text-center">
+                      <a href={c.url} target="_blank" rel="noopener noreferrer">
+                        <img src={c.logo} alt={c.name} className=" w-15 h-15 p-0.1 md:w-17 md:h-17 object-contain md:p-0.5 border rounded-lg 
                      shadow-md hover:scale-101 transition-transform duration-200 cursor-pointer" />
-                    </a>
-                    <p className=" hover:underline text-xs cursor-pointer md:text-sm  lg:text-base mt-2 text-gray-300">{c.name}</p>
-                  </div>
-                ))}
+                      </a>
+                      <p className=" hover:underline text-center text-xs cursor-pointer md:text-sm  lg:text-base mt-2 text-gray-300">{c.name}</p>
+                    </div>
+                  ))}
               </div>
             </div>
 
@@ -527,7 +538,7 @@ Return only in JSON:
               <div className="flex gap-5 md:gap-10 overflow-x-auto pb-2">
                 {movie.cast.map((c) => (
                   <div key={c.name} className="flex-shrink-0 w-20 text-center">
-                    <p onClick={() => handleNameClick(c.name)} className=" hover:underline text-xs cursor-pointer md:text-sm  lg:text-base mt-2 text-gray-300">{c.name}</p>
+                    <p onClick={() => handleNameClick(c.name)} className=" hover:underline text-xs cursor-pointer text-blue-400 md:text-sm  lg:text-base mt-2 ">{c.name}</p>
                   </div>
                 ))}
               </div>
@@ -578,7 +589,7 @@ Return only in JSON:
 
         <div className="h-12" />
       </div>
-      
+
 
     </div>
   );
@@ -636,19 +647,19 @@ const MovieCard = ({ Title, Poster, imdbRating, imdbId, Type, tmdb_id }) => {
     if (finalImdbId) {
       navigate(`/page/${Type}/${encodeURIComponent(finalImdbId)}`);
     } else {
-      console.warn("Could not navigate: IMDb ID missing");
+      // console.warn("Could not navigate: IMDb ID missing");
     }
   }
 
   async function fetchImdbId(tmdb_id, media) {
     try {
-      console.log("Fetching ImdbId")
+      // console.log("Fetching ImdbId")
       const res = await fetch(`https://api.themoviedb.org/3/${media}/${tmdb_id}/external_ids?api_key=${tmdbApi}`);
       const data = await res.json();
       const imdbId = data.imdb_id;
       return imdbId;
     } catch (error) {
-      console.log("Could not fetch ImdbIb" + error);
+      // console.log("Could not fetch ImdbIb" + error);
       return null;
     }
   }
