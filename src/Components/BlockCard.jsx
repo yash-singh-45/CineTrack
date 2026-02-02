@@ -7,6 +7,8 @@ const BlockCard = ({ heroMovies }) => {
     const [current, setCurrent] = useState(0);
 
     const intervalRef = React.useRef(null);
+    const startX = React.useRef(0);
+    const isSwiping = React.useRef(false);
 
 
     const startAutoPlay = () => {
@@ -55,14 +57,46 @@ const BlockCard = ({ heroMovies }) => {
         navigate(`/page/${currentMovie.media_type}/${encodeURIComponent(currentMovie.imdbId)}`);
     }
 
+    const handleTouchStart = (e) => {
+        pause();
+        startX.current = e.touches[0].clientX;
+        isSwiping.current = false;
+    };
+
+    const handleTouchEnd = (e) => {
+        const endX = e.changedTouches[0].clientX;
+        const diff = startX.current - endX;
+
+        if (Math.abs(diff) < 50) {
+            resume();
+            return;
+        }
+        isSwiping.current = true;
+
+
+        if (diff > 0) nextSlide();
+        else prevSlide();
+
+        resume();
+    };
+
     return (
         <section className="relative md:px-8 md:py-8 px-2 py-2" >
             <div
                 className="rounded-lg overflow-hidden relative cursor-pointer"
                 onMouseEnter={pause}
                 onMouseLeave={resume}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
 
-                onClick={handleViewDetails}>
+                onClick={() => {
+                    if (isSwiping.current) {
+                        isSwiping.current = false;
+                        return;
+                    }
+                    handleViewDetails();
+                }}>
+
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
@@ -73,7 +107,7 @@ const BlockCard = ({ heroMovies }) => {
              flex items-center justify-center text-white
              hover:bg-black/70 transition cursor-pointer "
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6 opacity-60" fill="none"
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6 opacity-90" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                     </svg>
@@ -89,7 +123,7 @@ const BlockCard = ({ heroMovies }) => {
              flex items-center justify-center text-white
              hover:bg-black/70 transition cursor-pointer "
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" className=" h-5 w-5 md:h-6 md:w-6 opacity-60" fill="none"
+                    <svg xmlns="http://www.w3.org/2000/svg" className=" h-5 w-5 md:h-6 md:w-6 opacity-90" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                     </svg>
