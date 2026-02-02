@@ -10,7 +10,6 @@ const BlockCard = ({ heroMovies }) => {
     const startX = React.useRef(0);
     const isSwiping = React.useRef(false);
 
-
     const startAutoPlay = () => {
         clearInterval(intervalRef.current);
         intervalRef.current = setInterval(() => {
@@ -42,6 +41,21 @@ const BlockCard = ({ heroMovies }) => {
     const resume = () => {
         startAutoPlay();
     }
+
+    useEffect(() => {
+
+        if (!heroMovies || heroMovies.length === 0) return;
+
+        heroMovies.forEach(movie => {
+            const img = new Image();
+            img.src = movie.image;
+        });
+
+        startAutoPlay();
+
+        return () => clearInterval(intervalRef.current);
+
+    }, [heroMovies]);
 
 
     if (!heroMovies || heroMovies.length === 0) {
@@ -130,10 +144,10 @@ const BlockCard = ({ heroMovies }) => {
                 </button>
 
 
-                <img src={heroMovies[current].image}
-                    alt={heroMovies[current].title} className="w-full  overflow-hidden min-h-50 max-h-200 aspect-video object-cover opacity-70" />
+                <img key={current} src={heroMovies[current].image}
+                    alt={heroMovies[current].title} className="w-full transition-opacity duration-700 overflow-hidden min-h-50 max-h-200 aspect-video object-cover opacity-70" />
                 <div className="absolute top-0 left-0 w-full h-full flex flex-col gap-0.5 md:gap-1.5 justify-end p-8 bg-gradient-to-t from-black via-transparent">
-                    <h2 className="md:text-5xl text-2xl font-bold md:mb-2 mb-1">{heroMovies[current].title}</h2>
+                    <h2 className="md:text-5xl text-2xl transition-opacity duration-700 font-bold md:mb-2 mb-1">{heroMovies[current].title}</h2>
                     <div className="flex flex-wrap items-center gap-1.5 md:gap-3">
                     </div>
                 </div>
