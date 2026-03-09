@@ -9,6 +9,7 @@ import TopRatedIndianTV from './TopRatedIndianTV';
 import IndianMovies from './IndianMovies';
 import Malayalam from './Malayalam';
 import { useNavigate } from 'react-router-dom';
+import EditorsPick from './EditorsPick';
 
 const Home = () => {
     const [topRatedIndianTV, setTopRatedIndianTV] = useState([]);
@@ -21,6 +22,7 @@ const Home = () => {
         <div className="bg-[#0F1115] text-white min-h-screen font-sans">
             <Navbar />
             <HeroSection />
+            <EditorsPick />
             <TrendingMovies />
             <IndianMovies />
             <Malayalam />
