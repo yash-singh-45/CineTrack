@@ -103,7 +103,8 @@ const Malayalam = () => {
         const fetchMalayalamMovies = async () => {
             try {
                 const res = await fetch(
-                    `${BASE_URL}/discover/movie?api_key=${apikey}&with_original_language=ml&sort_by=popularity.desc&page=1`
+                    `${BASE_URL}/discover/movie?api_key=${apikey}&with_original_language=ml&sort_by=popularity.desc&page=1&primary_release_date.gte=2018-01-01
+&vote_count.gte=50`
                 );
                 const data = await res.json();
 
