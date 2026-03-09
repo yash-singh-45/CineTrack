@@ -109,7 +109,7 @@ const TopRatedIndianTV = () => {
         const fetchTopRatedIndianTV = async () => {
             try {
                 const res = await fetch(
-                    `${BASE_URL}/discover/tv?api_key=${apikey}&with_origin_country=IN&page=1`
+                    `${BASE_URL}/discover/tv?api_key=${apikey}&with_origin_country=IN&page=1&sort_by=popularity.desc&vote_count.gte=50&&with_networks=213|1024|2739|400|5920`
                 );
                 const data = await res.json();
                 const moviesWithImdb = await Promise.all(
