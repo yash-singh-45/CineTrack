@@ -95,7 +95,8 @@ const IndianMovies = () => {
         const fetchTopIndianMovies = async () => {
             try {
                 const res = await fetch(
-                    `${BASE_URL}/discover/movie?api_key=${apikey}&with_origin_country=IN&sort_by=popularity.desc&page=1`
+                    `${BASE_URL}/discover/movie?api_key=${apikey}&with_origin_country=IN&sort_by=popularity.desc&page=1&primary_release_date.gte=2018-01-01
+&vote_count.gte=100`
                 );
                 const data = await res.json();
 
