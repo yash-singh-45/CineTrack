@@ -15,16 +15,16 @@ const Actors = () => {
     const [totalFilms, setTotalFilms] = useState(0);
     const [sortBy, setSortBy] = useState("");
 
-    const { name } = useParams();
+    const { role, name } = useParams();
     const aName = name;
 
-    console.log("Name", aName)
+    // console.log("Name", aName)
     async function getOverview(name) {
         const encodeName = name;
         const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeName}`)
         const data = await res.json();
 
-        console.log("data", data)
+        // console.log("data", data)
 
         const wikidataId = data.wikibase_item
 
@@ -34,7 +34,7 @@ const Actors = () => {
 
         const query = `
     SELECT ?filmLabel WHERE {
-      ?film wdt:P161 wd:${wikidataId}.
+      ?film wdt:${role == 'actor' ? 'P161' : 'P57'} wd:${wikidataId}.
       ?film wikibase:sitelinks ?sitelinks.
       SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
     }
@@ -99,20 +99,22 @@ const Actors = () => {
 
     useEffect(() => {
 
-        if (!filmData.length) return;
+    if (!filmData.length) return;
 
-        const filtered = filmData.filter(movie => {
-            if (!movie.actor || movie.actor === "N/A") return false;
+    const field = role === "actor" ? "actor" : "director";
 
-            return movie.actor
-                .split(',')
-                .map(a => a.trim().toLowerCase())
-                .includes(aName.toLowerCase());
-        });
+    const filtered = filmData.filter(movie => {
+        if (!movie[field] || movie[field] === "N/A") return false;
 
-        setData(filtered);
+        return movie[field]
+            .split(',')
+            .map(a => a.trim().toLowerCase())
+            .includes(aName.toLowerCase());
+    });
 
-    }, [filmData])
+    setData(filtered);
+
+}, [filmData]);
 
 
     function handleSortChange(e) {
@@ -161,7 +163,7 @@ const Actors = () => {
             </div>
 
             {/* 2nd Container */}
-            <div className='mx-4 mt-5 md:mx-4 md:mt-15 lg:mx-10 lg:mt-20 bg-[#1E1E23] shadow-2xl rounded-2xl p-1.5 md:px-5 md:py-2'>
+            <div className='mx-4 mt-5 mb-2 md:mx-4 md:mt-15 lg:mx-10 lg:mt-20 bg-[#1E1E23] shadow-2xl rounded-2xl p-1.5 md:px-5 md:py-2'>
                 <div className=' my-1 md:my-2 flex justify-between align-middle'>
                     <label className='text-2xl md:text-4xl font-bold' htmlFor="">Filmography</label>
                     <select value={sortBy} onChange={handleSortChange} className='pl-2 md:px-3 mr-1 md:mr-5 rounded-2xl text-sm md:text-base border-amber-50 border-1 bg-[#1E1E23] text-white hover:bg-[#0F1115]
@@ -183,7 +185,7 @@ const Actors = () => {
                     <div className="flex justify-center mt-5 md:mt-8">
                         <button
                             onClick={() => setShowAll(!showAll)}
-                            className=" px-4 py-1 text-sm md:text-base md:px-6 md:py-2 rounded-full  bg-cyan-500 text-black  font-semibold hover:bg-cyan-400 transition cursor-pointer"
+                            className=" px-4 py-1 mb-1 text-sm md:text-base md:px-6 md:py-2 rounded-full  bg-cyan-500 text-black  font-semibold hover:bg-cyan-400 transition cursor-pointer"
                         >
                             {showAll && showAll == true ? "Show Less" : "Show More"}
                         </button>
