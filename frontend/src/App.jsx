@@ -45,7 +45,7 @@ const router = createBrowserRouter([
     element: <WatchList />
   },
   {
-    path: "/actor/:name",
+    path: "/bio/:role/:name",
     element: <Actors />
   }
 ]);
